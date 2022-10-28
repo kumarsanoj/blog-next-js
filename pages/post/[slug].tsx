@@ -1,13 +1,39 @@
 import { GetStaticProps } from 'next';
+import PortableText from 'react-portable-text';
 import Header from '../../components/Header';
 import { sanityClient, urlFor } from '../../sanity';
 import {Post} from '../../typing';
+import { useForm, SubmitHandler } from 'react-hook-form';
 
 interface PropType {
     post: Post
 }
+interface IFormInput {
+    _id: string;
+    name: string;
+    email: string;
+    comment: string;
+}
+
+
 const Post =( {post} : PropType ) => {
-console.log("****Post***", post)
+    const { 
+        register,
+        handleSubmit,
+        formState: { errors }
+    } = useForm<IFormInput>();
+
+    const onSubmit:SubmitHandler<IFormInput> = async (data) => {
+         await fetch(`/api/createComment`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+         }).then(() => {
+
+         }).catch(() => {
+            
+         })
+    }
+
     return (
         <main>
             <Header />
@@ -29,8 +55,54 @@ console.log("****Post***", post)
                         { new Date(post._createdAt).toLocaleString() }
                     </p>
                 </div>
-                
+                <div className='mt-4'>
+                    <PortableText
+                        className=''
+                     dataset={process.env.NEXT_PUBLIC_SANITY_DATASET}
+                     projectId={process.env.NEXT_PUBLIC_SANITY_PROJECT_ID}
+                     content={post.body}
+                     serializers={{
+                        h1: (props: any) => (
+                            <h1 className='text-2xl font-bold my-5' {...props} />
+                        ),
+                        h2: (props: any) => (
+                            <h2 className='text-xl font-bold my-5' {...props} />
+                        ),
+                        li: ({ children }: any) => (
+                            <li className='ml-4 list-disc'>{children}</li>
+                        ),
+                     }}
+                    />             
+                </div>
             </article>
+            <hr className='max-w-lg my-5 mx-auto border border-yellow-500'/>
+            <form className='flex flex-col p-5 max-w-2xl mx-auto' onSubmit={handleSubmit(onSubmit)}>
+                <h4 className='text-2xl'>Leave a comment below</h4>
+                <input 
+                    {...register("_id")}
+                    type="hidden"
+                    name="_id"
+                    value={post._id}
+                />
+                <label className='block my-5'>
+                    <span className='text-gray-700'>Name</span>
+                    <input {...register("name", { required: true})} className='shadow border rounded py-2 px-3 form-input mt-1 block ring-yellow-500 w-full ' placeholder='John' type={'text'} />
+                </label>
+                <label className='block mb-5'>
+                    <span className='text-gray-700'>Email</span>
+                    <input {...register("email", { required: true})} className='shadow border rounded py-2 px-3 form-input mt-1 block ring-yellow-500 w-full' placeholder='John' type={'email'} />
+                </label >
+                <label className='block mb-5'>
+                    <span className='text-gray-700'>Comment</span>
+                    <textarea {...register("comment", { required: true})} className='shadow border rounded py-2 px-3 form-input mt-1 block ring-yellow-500 w-full' placeholder='John' rows={8}/>
+                </label>
+                <div>
+                    {
+                        (errors.name || errors.email || errors.comment) && <span className='mb-2 text-red-600'>All field is required</span> 
+                    }
+                </div>
+                <input type={"submit"} className="shadow bg-yellow-500 hover:bg-yellow-400 py-1 mt-2" />
+            </form>
         </main>
     ) 
 }
